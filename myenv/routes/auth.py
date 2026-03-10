@@ -1,13 +1,11 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from passlib.context import CryptContext
 from jose import jwt
 from datetime import datetime,timedelta
 from database import users_collection
 
 router=APIRouter()
 # pasword hasing
-pwd_content=CryptContext(schemes=["sha256_crypt"])
 # jwt settings
 secret_key="smartcar123"
 Algorithm="HS256"
@@ -34,11 +32,10 @@ def register(user : UserRegisters):
   if existing_user:
     return{"msg":"Email already registered!"}
   # hash password
-  hashed_password=pwd_content.hash(user.password)
   users_collection.insert_one({
     "name":user.name,
     "email":user.email,
-    "password":hashed_password
+    "password":user.password
   })
   return{
     "msg":"user registeration successfully",
@@ -51,7 +48,7 @@ def login(user:UserLogin):
   db_user=users_collection.find_one({"email":user.email})
   if not db_user:
     return{"msg":"email not found"}
-  if not pwd_content.verify(user.password, db_user["password"]):
+  if user.password!=db_user["password"]:
     return{"msg":"wrong password!"}
   token=create_token(user.email)
   return{
